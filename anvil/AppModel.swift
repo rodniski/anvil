@@ -124,6 +124,14 @@ final class AppModel {
         persist()
     }
 
+    /// Renomeia um projeto. Nome vazio é ignorado (mantém o atual).
+    func renameProject(_ project: Project, to name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, let idx = projects.firstIndex(where: { $0.id == project.id }) else { return }
+        projects[idx].name = trimmed
+        persist()
+    }
+
     func removeProject(_ project: Project) {
         for component in project.components { tasks[component.id]?.cancel() }
         projects.removeAll { $0.id == project.id }
@@ -192,6 +200,13 @@ final class AppModel {
         tasks[component.id]?.cancel()
         guard let idx = projects.firstIndex(where: { $0.id == project.id }) else { return }
         projects[idx].components.removeAll { $0.id == component.id }
+        persist()
+    }
+
+    /// Renomeia o card de um componente. Nome vazio volta ao rótulo da plataforma.
+    func renameComponent(_ component: Component, to name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        mutateComponent(component.id) { $0.displayName = trimmed.isEmpty ? nil : trimmed }
         persist()
     }
 

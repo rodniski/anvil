@@ -34,8 +34,10 @@ struct ProjectBlueprint: View {
     private var header: some View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(project.name.uppercased())
-                    .font(BP.display(42)).tracking(3).foregroundStyle(BP.ink)
+                EditableTitle(
+                    text: project.name, transform: { $0.uppercased() },
+                    font: BP.display(42), color: BP.ink, tracking: 3
+                ) { model.renameProject(project, to: $0) }
                 Text("BUILD SPECIFICATION · \(project.components.count) COMPONENT\(project.components.count == 1 ? "" : "S")")
                     .font(BP.mono(10)).tracking(1).foregroundStyle(BP.inkDim)
             }
@@ -67,7 +69,6 @@ struct ComponentBlock: View {
     @State private var showConsole = false
 
     private var running: Bool { model.status(component) == .running }
-    private var name: String { component.platform.label }
     private var last: MetricSample? { model.metrics(component).last }
 
     private var discoverLabel: String {
@@ -81,10 +82,14 @@ struct ComponentBlock: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Fig. \(index) — \(name)")
+            HStack(spacing: 0) {
+                Text("Fig. \(index) — ")
                     .font(BP.serifItalic(18)).foregroundStyle(BP.ink)
-                Spacer()
+                EditableTitle(
+                    text: component.cardTitle,
+                    font: BP.serifItalic(18), color: BP.ink
+                ) { model.renameComponent(component, to: $0) }
+                Spacer(minLength: 8)
                 StatusBadge(status: model.status(component))
             }
 
@@ -156,11 +161,25 @@ struct ComponentBlock: View {
     @ViewBuilder private var bunSelectors: some View {
         selector("script", \.task, component.tasks.map { ($0, $0) })
         selector("env", \.environment, model.environments.map { ($0, $0) })
+        // Bun/Docker têm 2 seletores; iOS/Android têm 3. Reserva a linha que
+        // falta pra todos os cards terem a mesma altura.
+        selectorPlaceholder()
     }
     @ViewBuilder private var dockerSelectors: some View {
         // "" = todos os serviços (sobe o stack inteiro).
         selector("service", \.task, [("", "— todos os serviços —")] + component.tasks.map { ($0, $0) })
         selector("env", \.environment, model.environments.map { ($0, $0) })
+        selectorPlaceholder()
+    }
+
+    /// Linha invisível com o mesmo layout de um seletor — ocupa espaço no
+    /// layout (mantém a altura) sem desenhar nada nem receber interação.
+    @ViewBuilder private func selectorPlaceholder() -> some View {
+        HStack(spacing: 12) {
+            Text(" ").font(BP.mono(12)).frame(width: 58, alignment: .leading)
+            BlueprintDropdown(selection: .constant(""), options: [])
+        }
+        .hidden()
     }
 
     @ViewBuilder
@@ -210,6 +229,47 @@ struct ComponentBlock: View {
                 ComponentConsole(lines: log).frame(height: 150).padding(.top, 8)
             }
         }
+    }
+}
+
+/// Título que vira campo de texto ao receber duplo-clique — pra renomear
+/// projeto/card no lugar. Enter confirma, Esc cancela, vazio volta ao padrão.
+struct EditableTitle: View {
+    let text: String
+    var transform: (String) -> String = { $0 }
+    let font: Font
+    let color: Color
+    var tracking: CGFloat = 0
+    let onCommit: (String) -> Void
+
+    @State private var editing = false
+    @State private var draft = ""
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        if editing {
+            TextField("nome", text: $draft)
+                .textFieldStyle(.plain)
+                .font(font).foregroundStyle(color).tracking(tracking)
+                .fixedSize()
+                .focused($focused)
+                .onAppear { focused = true }
+                .onSubmit { commit() }
+                .onExitCommand { editing = false }
+                .onChange(of: focused) { _, now in if !now { commit() } }
+        } else {
+            Text(transform(text))
+                .font(font).foregroundStyle(color).tracking(tracking)
+                .contentShape(Rectangle())
+                .onTapGesture(count: 2) { draft = text; editing = true }
+                .help("Duplo-clique para renomear")
+        }
+    }
+
+    private func commit() {
+        guard editing else { return }   // evita disparo duplo (onSubmit + perda de foco)
+        editing = false
+        onCommit(draft)
     }
 }
 

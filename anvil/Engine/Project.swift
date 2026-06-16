@@ -106,6 +106,8 @@ public struct Selection: Codable, Sendable, Hashable {
 public struct Component: Codable, Sendable, Identifiable, Hashable {
     public let id: UUID
     public var name: String
+    /// Nome custom do card, definido pelo usuário. `nil` = usa o `platform.label`.
+    public var displayName: String?
     public var path: URL
     public var platform: Platform
     public var iosTargets: [Scheme]
@@ -116,6 +118,7 @@ public struct Component: Codable, Sendable, Identifiable, Hashable {
     public init(
         id: UUID = UUID(),
         name: String,
+        displayName: String? = nil,
         path: URL,
         platform: Platform,
         iosTargets: [Scheme] = [],
@@ -125,6 +128,7 @@ public struct Component: Codable, Sendable, Identifiable, Hashable {
     ) {
         self.id = id
         self.name = name
+        self.displayName = displayName
         self.path = path
         self.platform = platform
         self.iosTargets = iosTargets
@@ -132,6 +136,9 @@ public struct Component: Codable, Sendable, Identifiable, Hashable {
         self.tasks = tasks
         self.selection = selection
     }
+
+    /// Título exibido no card: nome custom ou, na falta, o rótulo da plataforma.
+    public var cardTitle: String { displayName ?? platform.label }
 }
 
 /// Um projeto é um container nomeado de componentes (ex.: `m4doc`).

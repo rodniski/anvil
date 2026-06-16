@@ -39,11 +39,13 @@ The interface is a **cyanotype blueprint**: dark blue paper, white line art, eve
 
 ## Screenshots
 
-> Drop your screenshots into [`docs/screenshots/`](docs/screenshots/) and they'll show up here.
+**New project** — group Swift, Kotlin, Bun and Docker folders into a single blueprint.
 
-| Empty state | Project blueprint | Build running |
-|:---:|:---:|:---:|
-| _add `docs/screenshots/empty.png`_ | _add `docs/screenshots/project.png`_ | _add `docs/screenshots/build.png`_ |
+![New project blueprint](docs/quickstart.png)
+
+**Build dashboard** — every component is a plate with live pickers, telemetry and its own Build/Run.
+
+![Build dashboard](docs/dashboard.png)
 
 ## Requirements
 
